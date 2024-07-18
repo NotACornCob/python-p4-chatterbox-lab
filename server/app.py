@@ -1,8 +1,10 @@
-from flask import Flask, request, make_response, jsonify, g
+from flask import Flask, request, make_response, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 
 from models import db, Message
+
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -37,27 +39,23 @@ def messages():
         db.session.commit()
         return new_message.to_dict(), 201
 
-@app.route('/messages/<int:id>, methods=["PATCH"], endpoint="message')
+@app.route('/messages/<int:id>', methods=["PATCH","DELETE"], endpoint="message")
 def messages_by_id(id):
-    for attr in request.form:
-        setattr(message, attr, message.get(attr))
+
+    if request.method == "PATCH":
+        message = Message.query.get(id)
+        data = request.get_json()
+        for key, value in data.items():
+            if hasattr(message, key):
+                setattr(message, key, value)
+        db.session.add(message)
+        db.session.commit()
+        return message.to_dict(), 201
     
-    db.session.add(message)
-    db.session.commit()
-
-    message_dict = message.to_dict()
-
-    response = make_response(
-        message_dict,
-        200
-    )
-
-    return response
-    
-    data = request.get_json
-    body = data.get("body")
-    message = Message.query.get(id)
-    return make_response(g.message.to_dict(), 200)
+    elif request.method == "DELETE":
+        message = Message.query.get(id)
+        db.session.delete(message)
+        db.session.commit()
 
 if __name__ == '__main__':
     app.run(port=5555)
